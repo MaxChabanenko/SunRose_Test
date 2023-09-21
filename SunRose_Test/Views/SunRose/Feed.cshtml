@@ -1,0 +1,40 @@
+﻿@model SunRose_Test.Models.ModelViews.MessagesAndSort
+@using SunRose_Test.Models.ModelViews
+@using SunRose_Test.Repository
+
+@{
+    ViewData["Title"] = "Post";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    List<User> users = new JsonRepository<User>().Read();
+}
+
+<h2>All feed</h2>
+<form action="@Url.Action("Feed", "SunRose")" method="get">
+     <label>
+        <input type="radio" name="sortBy" value=@SortingOption.Id @(Model.SortBy == SortingOption.Id ? "checked" : "") /> Sort by ID
+    </label>
+    <br/>
+    <label>
+        <input type="radio" name="sortBy" value=@SortingOption.Date @(Model.SortBy == SortingOption.Date ? "checked" : "") /> Sort by Date
+    </label>
+    <div class="form-group">
+        <input type="submit" value="Sort" class="btn btn-primary" />
+    </div>
+</form>
+
+    @foreach (var item in Model.Messages)
+        {
+        <hr/>
+        <div class="row">
+            <div class="col-sm-2">
+                @(users.Where(s => s.Id == item.UserId).FirstOrDefault().Username) (@(item.UserId))
+            </div>
+            <div class="col-sm-8">
+                @Html.DisplayFor(modelItem => item.Text)
+            </div>
+            <div class="col-sm-2">
+                @Html.DisplayFor(modelItem => item.CreatedDate)
+            </div>
+        </div>
+        }
+

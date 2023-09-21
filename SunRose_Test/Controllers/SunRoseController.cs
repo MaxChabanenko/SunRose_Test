@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SunRose_Test.Models;
+using SunRose_Test.Models.ModelViews;
 using SunRose_Test.Repository;
 using System.Dynamic;
 
@@ -10,39 +11,67 @@ namespace SunRose_Test.Controllers
     {
         private List<User> usersList;
         private readonly JsonRepository<User> JsonRepository;
-        private readonly int oneUserMaxMessages=10;
+        private readonly int oneUserMaxMessages = 10;
+        private readonly int feedMaxMessages = 20;
+        static private int nextId;
+
         public SunRoseController()
         {
             usersList = new List<User>();
-            JsonRepository= new JsonRepository<User>();
-            //messageIdCounter = 1;
+            JsonRepository = new JsonRepository<User>();
         }
         [HttpGet]
-        [Route("SunRose/Post/{userId:long}")]
-        public ActionResult Post(long userId)
+        public ActionResult Feed(SortingOption sortBy = SortingOption.Id)
+        {
+            usersList = JsonRepository.Read();
+            List<Message> allMessages = new List<Message>();
+
+            foreach (User user in usersList)
+                allMessages.AddRange(user.Feed);
+
+            allMessages = allMessages.OrderBy(m => m.CreatedDate).Reverse().Take(feedMaxMessages).ToList();
+
+            if (sortBy == SortingOption.Date)
+            {
+                allMessages = allMessages.OrderBy(m => m.CreatedDate).Reverse().ToList();
+            }
+            else
+            {
+                allMessages = allMessages.OrderBy(m => m.UserId).ToList();
+            }
+
+            var viewModel = new MessagesAndSort
+            {
+                Messages = allMessages,
+                SortBy = sortBy
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpGet]
+        public ActionResult Post(int userId)
         {
             usersList = JsonRepository.Read();
 
             User user = usersList.Where(s => s.Id == userId).FirstOrDefault();
 
-            Message newPost = new Message() {  UserId = user.Id };
+            Message newPost = new Message() { UserId = user.Id };
 
             UserAndMessage mymodel = new UserAndMessage();
-            mymodel.user = user;
-            mymodel.message = newPost;
+            mymodel.User = user;
+            mymodel.Message = newPost;
             return View(mymodel);
         }
 
         [HttpPost]
-        [Route("SunRose/Post/{userId:long}")]
         public ActionResult Post(UserAndMessage mymodel)
         {
             usersList = JsonRepository.Read();
-            Message msg = mymodel.message;
+            Message msg = mymodel.Message;
 
             var user = usersList.Where(x => x.Id == msg.UserId).FirstOrDefault();
             usersList.Remove(user);
-            //msg.Id = messageIdCounter++;
             if (user.Feed.Count() + 1 > oneUserMaxMessages)
             {
                 user.Feed.Dequeue();
@@ -56,10 +85,10 @@ namespace SunRose_Test.Controllers
 
             JsonRepository.Create(usersList);
 
-            Message newPost = new Message() {  UserId = user.Id };
+            Message newPost = new Message() { UserId = user.Id };
 
-            mymodel.user = user;
-            mymodel.message = newPost;
+            mymodel.User = user;
+            mymodel.Message = newPost;
 
             return View(mymodel);
         }
@@ -72,10 +101,10 @@ namespace SunRose_Test.Controllers
 
         public ActionResult SignUp()
         {
-            User user = new User();
-
+            //tried using ToUnixTimeMilliseconds() at least it would give unique ids, but it was over the top compared to just increment
+            //with guid user couldn't make his own id
+            User user = new User(nextId, "");
             return View(user);
-
         }
 
         [HttpPost]
@@ -90,7 +119,7 @@ namespace SunRose_Test.Controllers
 
                 var user = usersList.Where(x => x.Id == newUser.Id).FirstOrDefault();
 
-                if(user==null)
+                if (user == null)
                     usersList.Add(newUser);
                 else
                 {
@@ -98,15 +127,16 @@ namespace SunRose_Test.Controllers
                     return View();
                 }
 
+                //increment userId only after creating one
+                nextId++;
+
                 JsonRepository.Create(usersList);
 
                 return RedirectToAction("Index");
             }
             else
                 return View();
-            
-        }
-       
 
+        }
     }
 }

@@ -4,7 +4,8 @@ namespace SunRose_Test.Models
 {
     public class User
     {
-        public User(long id, string name)
+
+        public User(int id, string name)
         {
             Id = id;
             Username = name;
@@ -12,10 +13,10 @@ namespace SunRose_Test.Models
         }
         public User()
         {
-            Id = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            //or autoincrement and stаtic field can be here, but json serialization will produce unnecessary increments
         }
         [Required]
-        public long Id { get; set; }
+        public int Id { get; set; }
 
         [Required]
         public string Username { get; set; }

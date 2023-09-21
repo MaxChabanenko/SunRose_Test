@@ -5,8 +5,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2>Allusers</h2>
-<h3>To access users page go to ~/SunRose/Post/{userId}</h3>
+<h2>All users</h2>
 <p>
     @Html.ActionLink("Create New", "SignUp")
 </p>
@@ -29,7 +28,9 @@
         <td>
             @Html.DisplayFor(modelItem => item.Username)
         </td>
-
+        <td>
+            @Html.ActionLink("Post", "Post", new { userId=item.Id }) 
+        </td>
     </tr>
 }
 
