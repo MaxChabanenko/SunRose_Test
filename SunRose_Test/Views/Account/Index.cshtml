@@ -7,7 +7,7 @@
 
 <h2>All users</h2>
 <p>
-    @Html.ActionLink("Create New", "SignUp")
+    @Html.ActionLink("Create New", "SignUp", "Account")
 </p>
 <table class="table">
     <tr>
@@ -27,9 +27,6 @@
         </td>
         <td>
             @Html.DisplayFor(modelItem => item.Username)
-        </td>
-        <td>
-            @Html.ActionLink("Post", "Post", new { userId=item.Id }) 
         </td>
     </tr>
 }

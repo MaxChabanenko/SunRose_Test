@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SunRose_Test.Models;
 using SunRose_Test.Models.ModelViews;
@@ -7,13 +8,13 @@ using System.Dynamic;
 
 namespace SunRose_Test.Controllers
 {
+    [Authorize]
     public class SunRoseController : Controller
     {
         private List<User> usersList;
         private readonly JsonRepository<User> JsonRepository;
         private readonly int oneUserMaxMessages = 10;
         private readonly int feedMaxMessages = 20;
-        static private int nextId;
 
         public SunRoseController()
         {
@@ -52,22 +53,30 @@ namespace SunRose_Test.Controllers
         [HttpGet]
         public ActionResult Post(int userId)
         {
-            usersList = JsonRepository.Read();
+            if (User.Identity.IsAuthenticated && User.Identity.Name == userId.ToString())
+            {
+                usersList = JsonRepository.Read();
 
-            User user = usersList.Where(s => s.Id == userId).FirstOrDefault();
+                User user = usersList.Where(s => s.Id == userId).FirstOrDefault();
 
-            Message newPost = new Message() { UserId = user.Id };
+                Message newPost = new Message() { UserId = user.Id };
 
-            UserAndMessage mymodel = new UserAndMessage();
-            mymodel.User = user;
-            mymodel.Message = newPost;
-            return View(mymodel);
+                UserAndMessage mymodel = new UserAndMessage();
+                mymodel.User = user;
+                mymodel.Message = newPost;
+                return View(mymodel);
+            }
+            else
+            {
+                TempData["Message"] = "Not authorized, login with user's "+userId.ToString()+" credentials";
+                return RedirectToAction("Index", "Account");
+            }
         }
-
         [HttpPost]
         public ActionResult Post(UserAndMessage mymodel)
         {
-            usersList = JsonRepository.Read();
+
+                usersList = JsonRepository.Read();
             Message msg = mymodel.Message;
 
             var user = usersList.Where(x => x.Id == msg.UserId).FirstOrDefault();
@@ -91,52 +100,17 @@ namespace SunRose_Test.Controllers
             mymodel.Message = newPost;
 
             return View(mymodel);
-        }
-
-        public ActionResult Index()
-        {
-            usersList = JsonRepository.Read();
-            return View(usersList);
-        }
-
-        public ActionResult SignUp()
-        {
-            //tried using ToUnixTimeMilliseconds() at least it would give unique ids, but it was over the top compared to just increment
-            //with guid user couldn't make his own id
-            User user = new User(nextId, "");
-            return View(user);
-        }
-
-        [HttpPost]
-        public ActionResult SignUp(User newUser)
-        {
-            if (ModelState.IsValid)
-            {
-                //through many searches and forums I never found how to avoid .net binding empty collection as null, so this workaround
-                newUser.Feed = new Queue<Message>();
-
-                usersList = JsonRepository.Read();
-
-                var user = usersList.Where(x => x.Id == newUser.Id).FirstOrDefault();
-
-                if (user == null)
-                    usersList.Add(newUser);
-                else
-                {
-                    ModelState.AddModelError("UserIdExist", "User with this Id already exists");
-                    return View();
-                }
-
-                //increment userId only after creating one
-                nextId++;
-
-                JsonRepository.Create(usersList);
-
-                return RedirectToAction("Index");
-            }
-            else
-                return View();
 
         }
+
+
+
+
+
+
+
+
+
+        
     }
 }
